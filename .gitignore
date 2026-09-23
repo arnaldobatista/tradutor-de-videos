@@ -1,0 +1,19 @@
+# Python
+engine/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Swift
+macos/.build/
+macos/build.noindex/
+macos/.sign-identity
+
+# Node (teste e2e da extensão)
+extension/e2e/node_modules/
+
+# macOS
+.DS_Store
+
+# Saídas dos spikes (áudio regenerável)
+spikes/out/

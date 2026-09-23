@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Tradutor de Vídeos</title>
+<style>
+  :root { color-scheme: light dark; --muted: #6b7280; --accent: #185fa5; --line: rgba(128,128,128,.3); }
+  body { width: 300px; margin: 0; padding: 14px; font: 13px/1.45 -apple-system, system-ui, sans-serif; }
+  h1 { margin: 0 0 10px; font-size: 14px; font-weight: 600; }
+  .status { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #9ca3af; flex: none; }
+  .dot.on { background: #22a35a; } .dot.off { background: #d9483b; }
+  .muted { color: var(--muted); font-size: 12px; }
+  label.row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); }
+  select { max-width: 160px; font: inherit; }
+  button { margin-top: 10px; width: 100%; padding: 7px; font: inherit; border: 1px solid var(--line); border-radius: 6px; background: transparent; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  #job { margin: 0 0 8px; }
+</style>
+</head>
+<body>
+  <h1>Tradutor de Vídeos</h1>
+  <div class="status"><span id="dot" class="dot"></span><span id="engine">Verificando o motor…</span></div>
+  <p id="job" class="muted" hidden></p>
+  <label class="row">Dublar automaticamente <input id="autoDub" type="checkbox"></label>
+  <label class="row">Usar meus cookies do YouTube <input id="sendCookies" type="checkbox"></label>
+  <label class="row">Voz <select id="voice" disabled></select></label>
+  <label class="row">Tradução
+    <select id="translator" disabled>
+      <option value="youtube">Legenda do YouTube</option>
+      <option value="ollama">LLM local (Ollama)</option>
+    </select>
+  </label>
+  <button id="clear" disabled>Limpar cache</button>
+  <p id="cache" class="muted"></p>
+  <script src="popup.js"></script>
+</body>
+</html>

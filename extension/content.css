@@ -1,0 +1,47 @@
+/* Botão no player do YouTube e aviso de progresso.
+   O ícone é uma máscara num span, pintada com a cor do botão: o YouTube aplica tamanho e padding
+   próprios a todo <svg> dentro de .ytp-button, então um svg nosso saía cortado e fora do centro. */
+.ytp-right-controls .tdv-button {
+  position: relative;
+  color: #fff;
+  opacity: 0.9;
+}
+.ytp-right-controls .tdv-button:hover { opacity: 1; }
+.tdv-button .tdv-icon {
+  position: absolute;
+  inset: 0;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='6 9 24 19'><path fill-rule='evenodd' d='M9 9h18a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H17l-5 4v-4H9a3 3 0 0 1-3-3v-9a3 3 0 0 1 3-3zm5 5.5v4h2v-4zm3.5-2v8h2v-8zm3.5 3v2h2v-2z'/></svg>") center / 24px 19px no-repeat;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='6 9 24 19'><path fill-rule='evenodd' d='M9 9h18a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H17l-5 4v-4H9a3 3 0 0 1-3-3v-9a3 3 0 0 1 3-3zm5 5.5v4h2v-4zm3.5-2v8h2v-8zm3.5 3v2h2v-2z'/></svg>") center / 24px 19px no-repeat;
+}
+.tdv-button .tdv-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  font: 500 10px/1 Roboto, Arial, sans-serif;
+  text-align: center;
+  text-shadow: 0 0 3px #000;
+  pointer-events: none;
+}
+.tdv-button[data-status="working"] .tdv-icon { opacity: 0.45; animation: tdv-pulse 1.2s ease-in-out infinite; }
+.tdv-button[data-status="ready"][data-dubbed="true"] { color: #6cb6ff; }
+.tdv-button[data-status="error"] { color: #ff8a80; }
+@keyframes tdv-pulse { 50% { opacity: 0.85; } }
+
+.tdv-toast {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 60;
+  max-width: 70%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(15, 15, 15, 0.85);
+  color: #fff;
+  font: 400 13px/1.4 Roboto, Arial, sans-serif;
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+.tdv-toast.tdv-visible { opacity: 1; }

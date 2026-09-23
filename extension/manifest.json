@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Tradutor de Vídeos",
+  "version": "0.1.0",
+  "description": "Dubla vídeos do YouTube para português usando o motor local (app da barra de menus).",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAg0URZ+FFEJSB8YiU6hEjqvqveesb0A0kb/nnCa93tRMzUytVj/F1sRlbaMXgkf5i9mxWYOxoJGs1drXq69IiMsOah2Kx1960KtLpOQZZqNNkOO4CFPOVDgDhlfBAemksEhuO/0E7A6BpcDJ9BbDXXPsZg48c+u5jpQgsaZd+yYVyUzR8Am4Zb5OWOBk+sB8tMZEFyqeeh5QUc9+VgLYraGGGgnknzUxWL4FC12M0ZM+RNdc8AVCpke7oUe/MUWNEyqxcScfVnEOnKhpbcqRCovz2slIan2g6zOSqBd5qxvVMybulG7rhuoXsvb5cOhBAlaSBQnNZj/bmxm7u+Su/1QIDAQAB",
+  "permissions": ["storage", "cookies"],
+  "host_permissions": ["https://*.youtube.com/*", "http://127.0.0.1:47811/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": { "default_popup": "popup.html", "default_title": "Tradutor de Vídeos" },
+  "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }
+}
