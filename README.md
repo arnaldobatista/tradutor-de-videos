@@ -1,85 +1,218 @@
-# Tradutor de vídeos do YouTube
+<p align="center">
+  <img src="docs/imagens/capa.jpg" alt="Tradutor de Vídeos: o painel na barra de menus do Mac e o botão de dublagem no player do YouTube" width="100%">
+</p>
 
-Dubla vídeos do YouTube para português do Brasil e toca a dublagem no próprio player, no lugar do áudio original. Tudo roda local, sem custo por uso. Uso pessoal.
+<p align="center">
+  <strong>Um app para a barra de menus do Mac e uma extensão para o Chrome.</strong><br>
+  Você clica no balão do player, e em poucos minutos o vídeo está falando português.<br>
+  Sem nuvem, sem assinatura, sem chave de API.
+</p>
 
-Três peças:
+<p align="center">
+  <img alt="macOS 14 ou mais novo" src="https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white">
+  <img alt="Otimizado para Apple Silicon" src="https://img.shields.io/badge/Apple%20Silicon-otimizado-0A84FF">
+  <img alt="Grátis" src="https://img.shields.io/badge/pre%C3%A7o-gr%C3%A1tis-34C759">
+  <img alt="Processamento 100% local" src="https://img.shields.io/badge/processamento-100%25%20local-5E5CE6">
+</p>
 
-| Pasta | O que é |
+---
+
+## Por que usar
+
+- **Dublagem de verdade, não legenda.** Você assiste olhando para o vídeo, não para o rodapé.
+- **O resto do vídeo continua igual.** Música, efeitos e ambiente ficam; só a voz é trocada, e a nova acompanha o volume da original, fala a fala.
+- **Direto no player do YouTube.** Um botão ao lado da legenda. Pause, pule, acelere para 2x: a dublagem acompanha. Um clique volta ao áudio original.
+- **Tudo no seu Mac.** Separação de voz, tradução e síntese rodam localmente. Nenhum vídeo é enviado para servidor nenhum.
+- **Rápido o bastante.** Num MacBook Pro M1 Max, um vídeo de 13 minutos ficou pronto em 6. Vídeos já dublados abrem na hora.
+- **Combina com o seu Mac.** Segue o tema claro ou escuro e a sua cor de destaque, inclusive no botão do YouTube.
+
+## Como funciona
+
+<p align="center">
+  <img src="docs/imagens/player.png" alt="O balão do Tradutor de Vídeos nos controles do player do YouTube" width="100%">
+</p>
+
+Você abre um vídeo e clica no balão que aparece nos controles do player. A partir daí:
+
+```mermaid
+flowchart LR
+    A[Clique no balão] --> B[Baixa só o áudio<br/>e as legendas]
+    B --> C[Separa a voz<br/>do som de fundo]
+    B --> D[Traduz: legenda do YouTube<br/>ou IA local]
+    D --> E[Gera a voz em português<br/>no tempo de cada fala]
+    C --> F[Mixa com o som original]
+    E --> F
+    F --> G[Toca sincronizado<br/>com o vídeo]
+```
+
+O balão mostra o progresso em porcentagem e fica colorido quando a dublagem está tocando. Clique de novo para alternar entre dublado e original, ou durante o processamento para cancelar.
+
+## Requisitos
+
+| O quê | Precisa de |
 |---|---|
-| `engine/` | Motor em Python: baixa o áudio, pega as legendas, remove a voz original, gera a voz em português, encaixa no tempo e mixa. Expõe uma API em `127.0.0.1:47811`. |
-| `extension/` | Extensão do Chrome: botão no player, envio dos seus cookies do YouTube ao motor, áudio dublado em sincronia com o vídeo. |
-| `macos/` | App da barra de menus (Swift): mantém o motor de pé e dá os controles (voz, tradução, cache, logs, iniciar no login). |
+| **Mac** | macOS 14 (Sonoma) ou mais novo. Apple Silicon recomendado; em Mac Intel funciona, mas bem mais devagar. |
+| **Navegador** | Google Chrome |
+| **Ferramentas** | [Homebrew](https://brew.sh) e as Command Line Tools da Apple com Swift 6 (Xcode 16 ou mais novo). O instalador cuida do resto. |
+| **Espaço** | cerca de 1,5 GB (dependências e modelos), mais o cache das dublagens, com limite ajustável (10 GB por padrão) |
+| **Opcional** | [Ollama](https://ollama.com), para tradução por IA local e falas mais naturais |
 
-O plano, as decisões e os riscos estão em [PLANO.md](PLANO.md).
+## Instalação
 
-## Instalar
-
-Pré-requisitos (Homebrew): `ffmpeg`, `deno`, `uv`. Opcional, mas recomendado: [Ollama](https://ollama.com) com um modelo instruct.
+### 1. Baixe o projeto
 
 ```bash
-cd engine && uv sync
+git clone https://github.com/arnaldobatista/tradutor-de-videos.git
 ```
 
 ```bash
-cd macos && ./build.sh --install
+cd tradutor-de-videos
 ```
 
-Abra o app **Tradutor de Vídeos** (na pasta Aplicativos, `/Applications`). O ícone aparece na barra de menus e o motor sobe sozinho. Clicar no ícone abre o painel: dublagem em andamento com progresso, recentes, voz (com botão para ouvir uma amostra), fonte da tradução, ajustes raros em "Mais ajustes", uso do cache e manutenção. Na primeira dublagem ele baixa os modelos (~400 MB).
-
-A assinatura padrão é ad-hoc e muda a cada build, o que faz o macOS descartar permissões concedidas ao app (como o Acesso Total ao Disco). Para elas persistirem, assine com uma identidade estável: grave o nome dela em `macos/.sign-identity` (arquivo não versionado; veja as suas com `security find-identity -v -p codesigning`) ou passe `TDV_SIGN_IDENTITY="<nome>"` ao `build.sh`. Se a identidade mudar, o macOS pede as permissões de novo.
-
-Para revisar o visual do painel sem abrir o app: `macos/.build/release/TradutorBar --snapshot <pasta>` gera PNGs dos estados de prévia nos temas claro e escuro.
-
-Extensão: em `chrome://extensions`, ligue o **Modo do desenvolvedor**, clique em **Carregar sem compactação** e escolha a pasta `extension/`. O ID fica fixo (`ilmjfenckbenkgighlfojdejdoiiflmo`) por causa da chave no manifesto; o motor só aceita requisições de navegador vindas dessa origem.
-
-## Usar
-
-Abra um vídeo no YouTube e clique no balão que aparece nos controles do player. O botão mostra o progresso; quando fica azul, o áudio já é o dublado. Clique de novo para alternar entre dublado e original. Vídeos já dublados abrem na hora (cache).
-
-No popup da extensão dá para ligar a dublagem automática, escolher a voz e a fonte da tradução.
-
-## Como a tradução é escolhida
-
-1. Legenda manual em português, se o vídeo tiver.
-2. Faixa traduzida do próprio YouTube. Sem sessão o YouTube responde HTTP 429 nessa faixa, por isso a extensão envia ao motor os seus cookies do `youtube.com` (só esse domínio, só para `127.0.0.1`, gravados com permissão `0600` e nunca logados).
-3. Plano B: tradução local com o Ollama, quando o YouTube nega a faixa.
-
-Os cookies também podem vir direto do navegador pelo yt-dlp (`--cookies-from-browser`): ajuste `cookies_from_browser` (`"chrome"`, `"chrome:Profile 1"`, `"safari"`…) em `~/Library/Application Support/TradutorDeVideos/settings.json` ou via `PUT /settings`. Se o sistema negar o acesso à pasta do navegador, o motor avisa no log e usa os cookies enviados pela extensão. Isso funciona num shell comum, mas o app da barra de menus precisa de permissão: sem ela o macOS nega em silêncio a leitura da pasta do Chrome e o yt-dlp responde "could not find chrome cookies database". Dê **Acesso Total ao Disco** ao app em Ajustes do Sistema › Privacidade e Segurança e reabra o app. Como a assinatura é ad-hoc, um `./build.sh` novo pode exigir conceder de novo. No log, a linha `cookies lidos de chrome pelo yt-dlp: N` confirma que funcionou.
-
-Com o Ollama ligado, o motor também pontua a transcrição automática (para cada fala virar uma frase completa) e enxuga as falas que não caberiam no tempo. Na barra de menus dá para trocar a tradução padrão para o Ollama: é mais lenta, mas costuma ficar melhor que a do YouTube.
-
-## Volume e permissões
-
-A voz dublada copia o volume da voz original fala a fala (medido na faixa de voz separada), o som de fundo fica como no vídeo, e o resultado segue a mesma regra de volume que o YouTube aplica ao original (nunca acima de −14 LUFS). Em "Mais ajustes" dá para deixar a voz 3 dB mais baixa ou mais alta. Dublagens feitas com a mixagem antiga são refeitas no próximo clique.
-
-Ler os cookies do Chrome pelo yt-dlp exige **Acesso Total ao Disco**, e o macOS não deixa app nenhum pedir essa permissão por diálogo. O app detecta a falta dela, mostra um aviso com o botão que abre a lista certa em Ajustes do Sistema, percebe quando a chave é ligada e reinicia o motor sozinho. Quem não quiser conceder usa os cookies pela extensão, que não precisa de permissão. Com a assinatura estável (ver acima), a permissão sobrevive às atualizações.
-
-## Linha de comando e testes
+### 2. Rode o instalador
 
 ```bash
-cd engine && uv run dub "https://www.youtube.com/watch?v=5C_HPTJg5ek"
+./install.sh
 ```
+
+O instalador confere o Mac, instala pelo Homebrew o que faltar (`ffmpeg`, `deno` e `uv`), prepara o motor de dublagem, compila o app e o coloca na pasta **Aplicativos**, já aberto. O ícone aparece na barra de menus. Para atualizar no futuro, é só rodar `git pull` e `./install.sh` de novo.
+
+### 3. Carregue a extensão no Chrome
+
+O Chrome não permite instalar extensões de fora da loja por script, então este passo é manual (uma vez só):
+
+1. Abra `chrome://extensions` e ligue o **Modo do desenvolvedor**, no canto superior direito.
+2. Clique em **Carregar sem compactação** e escolha a pasta `extension` do projeto.
+3. Abra um vídeo no YouTube e clique no balão nos controles do player.
+
+Na primeira dublagem, o app baixa os modelos de voz e de separação (cerca de 420 MB, uma vez só).
+
+### 4. Opcional: tradução por IA local
+
+Com o [Ollama](https://ollama.com) instalado e um modelo baixado, o app passa a traduzir quando o YouTube não entrega a legenda em português, deixa as falas em frases completas e enxuga as que não caberiam no tempo. Qualquer modelo *instruct* de 7B a 30B serve, por exemplo:
+
+```bash
+ollama pull qwen3:8b
+```
+
+O app escolhe sozinho o melhor modelo instalado.
+
+<details>
+<summary><strong>Instalação manual, sem o script</strong></summary>
+
+```bash
+brew install ffmpeg deno uv
+```
+
+```bash
+cd engine && uv sync && cd ..
+```
+
+```bash
+./macos/build.sh --install
+```
+
+```bash
+open "/Applications/Tradutor de Vídeos.app"
+```
+
+Depois, carregue a extensão como no passo 3.
+
+</details>
+
+## Usando
+
+### Na barra de menus
+
+<p align="center">
+  <img src="docs/imagens/painel.png" alt="Painel do Tradutor de Vídeos na barra de menus" width="420">
+</p>
+
+Clique no ícone para ver a dublagem em andamento, com progresso e opção de cancelar, e as dublagens recentes (um clique abre o vídeo). Dali mesmo você troca:
+
+- **Voz**: Dora (feminina), Alex ou Santa (masculinas). O alto-falante toca uma amostra.
+- **Tradução**: legenda do YouTube, mais rápida, ou IA local, que respeita melhor o tempo de cada fala.
+
+### Ajustes
+
+<p align="center">
+  <img src="docs/imagens/ajustes.png" alt="Janela de Ajustes do Tradutor de Vídeos" width="560">
+</p>
+
+Em **Ajustes…** (⌘,) ficam o volume da voz dublada, as opções do Ollama, os cookies, o cache e a manutenção: reiniciar o motor, atualizar o yt-dlp, abrir os logs e iniciar junto com o Mac.
+
+### Combina com o seu Mac
+
+<p align="center">
+  <img src="docs/imagens/temas.jpg" alt="Painel nos temas escuro e claro e com a cor de destaque laranja" width="100%">
+</p>
+
+O painel e os Ajustes seguem o tema claro ou escuro do macOS e a cor de destaque escolhida em Ajustes do Sistema. O balão no YouTube e o popup da extensão usam a mesma cor.
+
+### No popup da extensão
+
+Clique no ícone da extensão no Chrome para ligar a **dublagem automática** (todo vídeo aberto já começa a dublar), escolher voz e tradução, e limpar o cache.
+
+## De onde vem a tradução
+
+1. **Legenda em português feita pelo autor do vídeo**, quando existe.
+2. **Legenda traduzida automaticamente pelo YouTube.** O YouTube costuma recusar essa faixa para quem não está logado, por isso o app usa os seus cookies do `youtube.com`: enviados pela extensão (padrão, sem permissão extra) ou lidos direto do Chrome pelo yt-dlp.
+3. **IA local (Ollama)**, quando o YouTube não entrega a legenda em português.
+
+Ler os cookies direto do Chrome exige **Acesso Total ao Disco**, que o macOS só permite ligar em Ajustes do Sistema. O app avisa quando falta a permissão, abre a lista certa e reinicia sozinho quando ela é concedida. Se preferir não conceder, use os cookies enviados pela extensão.
+
+## Privacidade
+
+- Separação de voz, tradução por IA e síntese de voz rodam no seu Mac. Nenhum vídeo, áudio ou texto é enviado para serviços de terceiros.
+- O app só acessa a internet para baixar do YouTube o áudio e as legendas do vídeo que você pediu, e para baixar os modelos na primeira dublagem.
+- Os cookies do YouTube ficam no seu Mac, com acesso restrito à sua conta de usuário, e nunca vão para os logs.
+- O motor só atende conexões do próprio Mac e, vindas do navegador, só as da extensão: nenhum site consegue usá-lo.
+
+## Limitações
+
+- Dubla para **português do Brasil**, a partir de qualquer idioma que tenha legenda no YouTube (feita pelo autor ou automática). Vídeos sem legenda nenhuma e transmissões ao vivo ainda não são suportados.
+- Uma voz sintética para todos os falantes; não imita a voz de quem fala.
+- A legenda automática do YouTube às vezes erra nomes próprios. A tradução por IA local costuma acertar mais, mas leva mais tempo.
+- Só para macOS e testado apenas no Google Chrome.
+
+## Problemas comuns
+
+| Sintoma | O que fazer |
+|---|---|
+| O balão não aparece no player | Recarregue a aba do YouTube. Confira se a extensão está ligada em `chrome://extensions`. |
+| "O motor não está respondendo" | Abra o **Tradutor de Vídeos** em Aplicativos. O ícone precisa estar na barra de menus. |
+| "YouTube recusou o vídeo" ou o download falha | Ajustes › **Atualizar yt-dlp**. O YouTube muda com frequência, e o yt-dlp acompanha. |
+| A dublagem fica corrida ou atropelada | Troque a tradução para **IA local**, que adapta cada fala ao tempo disponível. |
+| Aviso de Acesso Total ao Disco | Siga o botão do aviso ou troque a origem dos cookies para **Enviados pela extensão**. |
+| Qualquer outra coisa | Ajustes › **Abrir logs**. O `motor.log` diz em que etapa parou. |
+
+## Desinstalar
+
+1. Clique no ícone da barra de menus e em **Sair**.
+2. Remova a extensão em `chrome://extensions`.
+3. Apague o app e os dados:
+
+```bash
+rm -rf "/Applications/Tradutor de Vídeos.app" \
+  ~/Library/Application\ Support/TradutorDeVideos \
+  ~/Library/Caches/TradutorDeVideos \
+  ~/Library/Logs/TradutorDeVideos
+```
+
+Se tiver ligado **Iniciar no login**, desligue antes em Ajustes, ou remova depois em Ajustes do Sistema › Geral › Itens de Início.
+
+## Para desenvolvedores
+
+O projeto tem três partes: um motor em Python que faz a dublagem e expõe uma API local, a extensão do Chrome e o app da barra de menus em Swift. Arquitetura, API, testes e como gerar as imagens estão no [guia de desenvolvimento](docs/DESENVOLVIMENTO.md). O histórico das decisões está no [PLANO.md](PLANO.md).
 
 ```bash
 cd engine && uv run pytest -q
 ```
 
-Teste de ponta a ponta da extensão (precisa do motor no ar; usa um Chromium de teste, que só recebe o primeiro minuto de cada vídeo):
+## Feito com
 
-```bash
-cd extension/e2e && npm install && npx playwright install chromium && npm test
-```
+[yt-dlp](https://github.com/yt-dlp/yt-dlp) para o download, [Demucs](https://github.com/facebookresearch/demucs) (via [python-audio-separator](https://github.com/nomadkaraoke/python-audio-separator)) para separar a voz, [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M) (via [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx)) para a voz em português, [Ollama](https://ollama.com) para a tradução local, além de FastAPI, SwiftUI e AppKit.
 
-## Onde ficam as coisas
+## Aviso
 
-| O quê | Onde |
-|---|---|
-| Cache por vídeo | `~/Library/Caches/TradutorDeVideos/<id>/` (`report.json` e `falas.json` mostram como cada fala foi encaixada) |
-| Modelos, ajustes, cookies | `~/Library/Application Support/TradutorDeVideos/` |
-| Logs | `~/Library/Logs/TradutorDeVideos/` |
-
-## Quando quebrar
-
-- **"YouTube recusou o vídeo" ou falha no download**: quase sempre é o yt-dlp desatualizado. Use **Atualizar yt-dlp** na barra de menus.
-- **Botão sumiu do player**: o YouTube mudou o DOM. Rode o teste e2e para ver qual verificação falha.
-- **Dublagem atropelada**: veja `falas_cortadas` e `velocidade_maxima` no `report.json`. Trocar a tradução para o Ollama ajuda, porque ele traduz já respeitando o tempo de cada fala.
+Projeto independente, sem vínculo com o YouTube ou o Google. Feito para uso pessoal: as dublagens ficam só no seu Mac e não devem ser redistribuídas. Respeite os direitos autorais dos criadores e os termos de uso do YouTube.
