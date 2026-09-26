@@ -13,6 +13,7 @@
   <img alt="Otimizado para Apple Silicon" src="https://img.shields.io/badge/Apple%20Silicon-otimizado-0A84FF">
   <img alt="Grátis" src="https://img.shields.io/badge/pre%C3%A7o-gr%C3%A1tis-34C759">
   <img alt="Processamento 100% local" src="https://img.shields.io/badge/processamento-100%25%20local-5E5CE6">
+  <a href="LICENSE"><img alt="Licença MIT" src="https://img.shields.io/badge/licen%C3%A7a-MIT-8E8E93"></a>
 </p>
 
 ---
@@ -216,3 +217,7 @@ cd engine && uv run pytest -q
 ## Aviso
 
 Projeto independente, sem vínculo com o YouTube ou o Google. Feito para uso pessoal: as dublagens ficam só no seu Mac e não devem ser redistribuídas. Respeite os direitos autorais dos criadores e os termos de uso do YouTube.
+
+## Licença
+
+[MIT](LICENSE): use, modifique e distribua à vontade, mantendo o aviso de copyright. Os componentes de terceiros listados em "Feito com", incluindo os modelos de voz e de separação baixados na primeira dublagem, seguem as próprias licenças.
