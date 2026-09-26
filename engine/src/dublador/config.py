@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import threading
 from dataclasses import asdict, dataclass, fields
 from pathlib import Path
@@ -70,6 +71,8 @@ class Settings:
     # Voz dublada em relação ao volume da voz original (dB). 0 = igual.
     voice_offset_db: float = 0.0
     cache_limit_gb: float = 10.0
+    # Cor de destaque do macOS (#RRGGBB), publicada pelo app para a extensão usar a mesma cor.
+    ui_accent: str = ""
     max_duration_min: int = 180
 
     def public(self) -> dict:
@@ -115,6 +118,10 @@ def update_settings(changes: dict) -> Settings:
                 raise ValueError("voice_offset_db fora da faixa (-12 a 12 dB)")
             if key == "duck_db" and not -12.0 <= value <= 0.0:
                 raise ValueError("duck_db fora da faixa (-12 a 0 dB)")
+            if key == "ui_accent" and value and not re.fullmatch(r"#[0-9A-Fa-f]{6}", value):
+                raise ValueError("ui_accent precisa ser #RRGGBB")
+            if key == "cache_limit_gb" and not 1.0 <= value <= 500.0:
+                raise ValueError("cache_limit_gb fora da faixa (1 a 500)")
             setattr(current, key, value)
         APP_SUPPORT.mkdir(parents=True, exist_ok=True)
         SETTINGS_FILE.write_text(json.dumps(asdict(current), indent=2, ensure_ascii=False))

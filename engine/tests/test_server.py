@@ -107,3 +107,12 @@ def test_historico_vem_do_cache(tmp_path, monkeypatch):
     assert [e["video_id"] for e in entries] == ["bbbbbbbbbbb", "aaaaaaaaaaa"]
     assert entries[0]["id"] == "bbbbbbbbbbb.pt.pf_dora" and entries[0]["title"] == "Vídeo 1"
     assert entries[0]["audio_url"] == "/jobs/bbbbbbbbbbb.pt.pf_dora/audio"
+
+
+def test_cor_de_destaque_valida(client, monkeypatch, tmp_path):
+    monkeypatch.setattr(config, "SETTINGS_FILE", tmp_path / "settings.json")
+    monkeypatch.setattr(config, "APP_SUPPORT", tmp_path)
+    assert client.put("/settings", json={"ui_accent": "#F7821B"}).json()["ui_accent"] == "#F7821B"
+    assert client.put("/settings", json={"ui_accent": "laranja"}).status_code == 400
+    assert client.put("/settings", json={"ui_accent": "#fff"}).status_code == 400
+    assert client.put("/settings", json={"ui_accent": ""}).status_code == 200

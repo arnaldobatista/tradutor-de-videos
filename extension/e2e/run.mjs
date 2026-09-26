@@ -101,6 +101,11 @@ try {
   check("dublagem pronta", d.status === "ready", `${d.status} — ${await button.getAttribute("title")}`);
   if (d.status !== "ready") throw new Error("sem dublagem, não há o que sincronizar");
   check("modo dublado ligado", d.dubbed === "true");
+  const settings = await worker.evaluate(() => fetch("http://127.0.0.1:47811/settings").then((r) => r.json()));
+  const playerAccent = await page.evaluate(() =>
+    getComputedStyle(document.getElementById("movie_player")).getPropertyValue("--tdv-accent").trim());
+  check("botão usa a cor de destaque do app", !settings.ui_accent || playerAccent.toUpperCase() === settings.ui_accent.toUpperCase(),
+    `${playerAccent || "(sem cor)"} / motor ${settings.ui_accent || "(sem cor)"}`);
 
   // Anúncios tocam com o áudio original: espera passarem antes de medir sincronia.
   await page.waitForFunction(() => !document.getElementById("movie_player")?.classList.contains("ad-showing"),

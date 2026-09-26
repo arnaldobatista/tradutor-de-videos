@@ -52,6 +52,7 @@ struct EngineSettings: Decodable, Equatable, Sendable {
     var cacheLimitGb: Double? = nil
     var cookiesFromBrowser: String? = nil
     var voiceOffsetDb: Double? = nil
+    var uiAccent: String? = nil
 }
 
 struct Health: Decodable, Sendable {

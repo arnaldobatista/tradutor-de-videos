@@ -46,6 +46,25 @@
 
   // ---------------------------------------------------------------- interface
 
+  // Cor de destaque do app (a do macOS), aplicada no player para o botão e o aviso herdarem.
+  let accent = null;
+
+  function applyTheme() {
+    const host = player();
+    if (!host) return;
+    if (accent) host.style.setProperty("--tdv-accent", accent);
+    else host.style.removeProperty("--tdv-accent");
+  }
+
+  async function refreshTheme() {
+    try {
+      accent = (await send({ type: "engine:theme" })).accent;
+    } catch {
+      return; // motor fora do ar: fica a cor de antes
+    }
+    applyTheme();
+  }
+
   function ensureButton() {
     const controls = document.querySelector(".ytp-right-controls");
     if (!controls) return null;
@@ -58,6 +77,7 @@
       button.innerHTML = '<span class="tdv-icon" aria-hidden="true"></span><span class="tdv-label"></span>';
       button.addEventListener("click", onButtonClick);
       controls.prepend(button);
+      applyTheme();
     }
     return button;
   }
@@ -301,6 +321,7 @@
     if (!id) return;
     render();
     bindVideo();
+    refreshTheme();
     const { autoDub = false } = await chrome.storage.sync.get("autoDub").catch(() => ({}));
     if (autoDub && watchId() === id && !player()?.classList.contains("ytp-live")) startDub();
   }

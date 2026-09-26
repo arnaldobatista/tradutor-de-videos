@@ -25,7 +25,10 @@
   pointer-events: none;
 }
 .tdv-button[data-status="working"] .tdv-icon { opacity: 0.45; animation: tdv-pulse 1.2s ease-in-out infinite; }
-.tdv-button[data-status="ready"][data-dubbed="true"] { color: #6cb6ff; }
+/* Dublado: cor de destaque do app (a do macOS), clareada para ler bem sobre o vídeo. */
+.tdv-button[data-status="ready"][data-dubbed="true"] {
+  color: color-mix(in srgb, var(--tdv-accent, #3d9bff) 80%, white);
+}
 .tdv-button[data-status="error"] { color: #ff8a80; }
 @keyframes tdv-pulse { 50% { opacity: 0.85; } }
 
@@ -38,6 +41,7 @@
   padding: 8px 12px;
   border-radius: 8px;
   background: rgba(15, 15, 15, 0.85);
+  border-left: 3px solid var(--tdv-accent, rgba(255, 255, 255, 0.35));
   color: #fff;
   font: 400 13px/1.4 Roboto, Arial, sans-serif;
   opacity: 0;

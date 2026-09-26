@@ -1,19 +1,10 @@
 import SwiftUI
 
-/// Painel que abre no ícone da barra de menus. Ordem pensada pelo uso: o que está acontecendo agora,
-/// depois o que se troca com frequência (voz, tradução), depois ajustes raros recolhidos, e manutenção no rodapé.
+/// Conteúdo do painel da barra de menus: o que está acontecendo agora e o que se troca com frequência.
+/// Os ajustes raros ficam na janela de Ajustes, para o painel não mudar de altura à toa com ele aberto.
 struct PanelView: View {
     @ObservedObject var model: AppModel
-    @State private var showAdvanced: Bool
-    @State private var confirmingClear = false
-
-    /// Azul do ícone da extensão. Fixo, para app e extensão terem a mesma cara seja qual for o acento do sistema.
-    static let brand = Color(red: 0.13, green: 0.47, blue: 0.87)
-
-    init(model: AppModel, startExpanded: Bool = false) {
-        self.model = model
-        _showAdvanced = State(initialValue: startExpanded)
-    }
+    var openSettings: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -24,9 +15,9 @@ struct PanelView: View {
             activity
             if model.needsFullDiskAccess {
                 PermissionNote(
-                    message: "Para ler os cookies do \(model.browserName), o macOS exige Acesso Total ao Disco, e a Apple não deixa nenhum app pedir isso por diálogo: é preciso ligar a chave em Ajustes do Sistema. Na lista, ligue a do Tradutor de Vídeos; se ele não constar, o + adiciona (está em Aplicativos). O motor reinicia sozinho em seguida.",
+                    message: "Ler os cookies do \(model.browserName) exige Acesso Total ao Disco. Ligue a chave do Tradutor de Vídeos na lista; o motor reinicia sozinho.",
                     primary: "Abrir Acesso Total ao Disco",
-                    secondary: "Ou usar os cookies pela extensão, que não precisa de permissão",
+                    secondary: "Usar os cookies da extensão (sem permissão)",
                     onPrimary: { model.openFullDiskAccess() },
                     onSecondary: { model.setCookiesSource("") })
             }
@@ -34,17 +25,17 @@ struct PanelView: View {
                 Divider()
                 voicePicker
                 translatorPicker
-                advanced
-                Divider()
-                cache
-            } else {
-                Divider()
             }
+            Divider()
             footer
         }
         .padding(16)
         .frame(width: 340)
-        .tint(Self.brand)
+        // Cor de destaque do sistema passada de forma explícita: com `.accentColor` o SwiftUI deixa o segmentado
+        // no azul de fábrica, e sem tint nenhum o macOS 26+ o desenha cinza.
+        .tint(Color(nsColor: .controlAccentColor))
+        // O painel vira janela-chave para o Esc funcionar; sem isto o primeiro controle ganha o anel de foco.
+        .focusEffectDisabled()
     }
 
     // MARK: - Cabeçalho
@@ -55,7 +46,7 @@ struct PanelView: View {
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 30, height: 30)
-                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Self.brand))
+                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.accentColor))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
                 Text("Tradutor de Vídeos").font(.headline)
@@ -159,8 +150,6 @@ struct PanelView: View {
                 if let current = model.voiceOptions.first(where: { $0.id == settings.voice }) {
                     Caption(current.name + ". Vale para as próximas dublagens.")
                 }
-            } else {
-                Caption("Disponível quando o motor estiver ativo.")
             }
         }
     }
@@ -179,113 +168,11 @@ struct PanelView: View {
                 Caption(settings.translator == "ollama"
                     ? "O Ollama traduz respeitando o tempo de cada fala. Mais lento, costuma ficar melhor."
                     : "Usa a legenda traduzida pelo YouTube. É o caminho mais rápido.")
-            } else {
-                Caption("Disponível quando o motor estiver ativo.")
             }
         }
     }
 
-    // MARK: - Ajustes raros
-
-    private var advanced: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Button {
-                withAnimation(.easeOut(duration: 0.18)) { showAdvanced.toggle() }
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "chevron.right")
-                        .font(.caption2.weight(.bold))
-                        .rotationEffect(.degrees(showAdvanced ? 90 : 0))
-                    Text("Mais ajustes").font(.callout)
-                    Spacer()
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-            .accessibilityHint(showAdvanced ? "Recolhe os ajustes" : "Mostra os ajustes")
-
-            if showAdvanced {
-                VStack(alignment: .leading, spacing: 12) {
-                    SettingToggle(
-                        title: "Tradução reserva",
-                        caption: "Usa o Ollama quando o YouTube não entrega a legenda em português.",
-                        isOn: Binding(get: { model.settings?.ollamaFallback ?? false }, set: { model.setOllamaFallback($0) }))
-                    SettingToggle(
-                        title: "Frases completas e enxutas",
-                        caption: "O Ollama pontua a transcrição e encurta as falas que não cabem no tempo.",
-                        isOn: Binding(get: { model.settings?.ollamaAssist ?? false }, set: { model.setOllamaAssist($0) }))
-                    SettingToggle(
-                        title: "Cookies do YouTube",
-                        caption: model.cookiesCaption,
-                        isOn: Binding(get: { model.settings?.useCookies ?? false }, set: { model.setUseCookies($0) }))
-                    if model.settings?.useCookies == true {
-                        Picker("Origem dos cookies", selection: Binding(
-                            get: { model.wantsBrowserCookies ? "chrome" : "" },
-                            set: { model.setCookiesSource($0) }
-                        )) {
-                            Text("Pela extensão").tag("")
-                            Text("Do Chrome, pelo yt-dlp").tag("chrome")
-                        }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
-                    }
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Volume da voz dublada").font(.callout)
-                        Picker("Volume da voz dublada", selection: Binding(
-                            get: { model.voiceOffset }, set: { model.setVoiceOffset($0) }
-                        )) {
-                            Text("Mais baixa").tag(-3.0)
-                            Text("Como no original").tag(0.0)
-                            Text("Mais alta").tag(3.0)
-                        }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
-                        Caption("Em relação à voz original, fala a fala. O som de fundo não muda.")
-                    }
-                }
-                .disabled(!model.controlsEnabled)
-                SettingToggle(
-                    title: "Iniciar no login",
-                    caption: model.loginNote ?? "Abre o app, e com ele o motor, quando você entra no Mac.",
-                    isOn: Binding(get: { model.loginEnabled }, set: { model.setLoginEnabled($0) }))
-            }
-        }
-    }
-
-    // MARK: - Cache e rodapé
-
-    private var cache: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline) {
-                SectionLabel("Cache")
-                Spacer()
-                Text(verbatim: model.cacheDetail).font(.caption).monospacedDigit().foregroundStyle(.secondary)
-            }
-            HStack(spacing: 10) {
-                Meter(fraction: model.cacheFraction, height: 4, tint: .secondary)
-                    .accessibilityLabel("Uso do cache")
-                    .accessibilityValue(model.cacheDetail)
-                Button(confirmingClear ? "Confirmar" : "Limpar") {
-                    if confirmingClear {
-                        confirmingClear = false
-                        model.clearCache()
-                    } else {
-                        confirmingClear = true
-                        // Apagar é irreversível (os vídeos teriam que ser dublados de novo): pede um segundo clique.
-                        Task {
-                            try? await Task.sleep(for: .seconds(4))
-                            confirmingClear = false
-                        }
-                    }
-                }
-                .controlSize(.small)
-                .tint(confirmingClear ? .red : nil)
-                .disabled(!model.controlsEnabled || model.cacheIsEmpty)
-                .help("Apaga as dublagens guardadas. Os vídeos teriam que ser dublados de novo.")
-            }
-        }
-    }
+    // MARK: - Rodapé
 
     private var footer: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -297,227 +184,28 @@ struct PanelView: View {
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .transition(.opacity)
             }
             HStack {
-                Menu {
-                    Button("Abrir pasta do cache") { model.openCacheFolder() }
-                    Button("Abrir logs") { model.openLogsFolder() }
-                    Divider()
-                    Button("Reiniciar motor") { model.restartEngine() }.disabled(!model.canRestart)
-                    Button("Atualizar yt-dlp") { model.updateYtDlp() }.disabled(model.updatingYtDlp)
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "ellipsis.circle")
-                        Text("Manutenção")
+                Button(action: openSettings) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "gearshape")
+                        Text("Ajustes…")
                     }
                     .font(.callout)
                     .foregroundStyle(.secondary)
+                    .contentShape(Rectangle())
                 }
-                .menuStyle(.button)
                 .buttonStyle(.plain)
-                .menuIndicator(.hidden)
-                .fixedSize()
-                .help("Pasta do cache, logs, reiniciar o motor, atualizar o yt-dlp")
+                .keyboardShortcut(",")
+                .help("Volume, cookies, Ollama, cache e manutenção (⌘,)")
                 Spacer()
                 Button { model.quit() } label: {
-                    Text("Sair").font(.callout).foregroundStyle(.secondary)
+                    Text("Sair").font(.callout).foregroundStyle(.secondary).contentShape(Rectangle())
                 }
                 .keyboardShortcut("q")
                 .buttonStyle(.plain)
                 .help("Encerra o app e o motor (⌘Q)")
             }
         }
-        .animation(.easeOut(duration: 0.2), value: model.notice)
     }
-}
-
-// MARK: - Peças
-
-private struct Card<Content: View>: View {
-    @ViewBuilder var content: Content
-
-    var body: some View {
-        content
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.06)))
-            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Color.primary.opacity(0.08)))
-    }
-}
-
-private struct SectionLabel: View {
-    let text: String
-    init(_ text: String) { self.text = text }
-    var body: some View {
-        Text(verbatim: text).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-    }
-}
-
-private struct Caption: View {
-    let text: String
-    init(_ text: String) { self.text = text }
-    var body: some View {
-        Text(verbatim: text).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-    }
-}
-
-/// Barra de medida fina. Desenhada à mão para o progresso e o cache terem o mesmo traço.
-private struct Meter: View {
-    let fraction: Double
-    let height: CGFloat
-    var tint: Color = PanelView.brand
-
-    var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.primary.opacity(0.1))
-                Capsule().fill(tint)
-                    .frame(width: fraction > 0 ? max(height, geometry.size.width * fraction) : 0)
-                    .animation(.easeOut(duration: 0.4), value: fraction)
-            }
-        }
-        .frame(height: height)
-        .accessibilityElement()
-    }
-}
-
-private struct ProblemBanner: View {
-    let message: String
-    let canRestart: Bool
-    let restart: () -> Void
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange).accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 8) {
-                Text(verbatim: message).font(.callout).fixedSize(horizontal: false, vertical: true)
-                Button("Reiniciar motor", action: restart).controlSize(.small).disabled(!canRestart)
-            }
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.orange.opacity(0.12)))
-    }
-}
-
-/// Aviso com ação: para o que não para o app, mas que só o usuário resolve (permissão do sistema).
-private struct PermissionNote: View {
-    let message: String
-    let primary: String
-    let secondary: String
-    let onPrimary: () -> Void
-    let onSecondary: () -> Void
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "lock.shield").foregroundStyle(.orange).accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 8) {
-                Text(verbatim: message).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                Button(primary, action: onPrimary).controlSize(.small)
-                Button(action: onSecondary) {
-                    Text(verbatim: secondary).font(.caption).underline()
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-            }
-        }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.orange.opacity(0.1)))
-    }
-}
-
-private struct SampleButton: View {
-    @ObservedObject var model: AppModel
-    let voice: String
-
-    var body: some View {
-        Button { model.toggleSample(voice: voice) } label: {
-            Group {
-                if model.sampleLoading == voice {
-                    ProgressView().controlSize(.small)
-                } else {
-                    Image(systemName: model.samplePlaying == voice ? "stop.fill" : "speaker.wave.2.fill")
-                }
-            }
-            .frame(width: 18, height: 16)
-        }
-        .help(model.samplePlaying == voice ? "Parar a amostra" : "Ouvir uma amostra desta voz")
-        .accessibilityLabel(model.samplePlaying == voice ? "Parar a amostra" : "Ouvir uma amostra desta voz")
-    }
-}
-
-private struct SettingToggle: View {
-    let title: String
-    let caption: String
-    @Binding var isOn: Bool
-
-    var body: some View {
-        Toggle(isOn: $isOn) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: title).font(.callout)
-                Caption(caption)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .toggleStyle(.switch)
-        .controlSize(.small)
-    }
-}
-
-private struct RecentRow: View {
-    let job: Job
-    let open: () -> Void
-    @State private var hovering = false
-
-    private var failed: Bool { job.status == "error" }
-
-    private var detail: String {
-        if failed { return job.error ?? "A dublagem falhou." }
-        var parts: [String] = []
-        if let seconds = job.report?.tempoTotalS { parts.append("Dublado em \(Self.duration(seconds))") }
-        if let source = job.report?.traducao {
-            parts.append(source.lowercased().hasPrefix("ollama") ? "LLM local" : "legenda do YouTube")
-        }
-        return parts.isEmpty ? "Dublado" : parts.joined(separator: " · ")
-    }
-
-    var body: some View {
-        Button(action: open) {
-            HStack(spacing: 8) {
-                Image(systemName: failed ? "exclamationmark.circle.fill" : "checkmark.circle.fill")
-                    .foregroundStyle(failed ? Color.red : Color.green)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(verbatim: job.title ?? "Vídeo \(job.videoId)").font(.callout).lineLimit(1)
-                    Text(verbatim: detail).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                }
-                Spacer(minLength: 4)
-                Image(systemName: "arrow.up.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-                    .opacity(hovering ? 1 : 0)
-                    .accessibilityHidden(true)
-            }
-            .padding(.vertical, 5)
-            .padding(.horizontal, 6)
-            .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Color.primary.opacity(hovering ? 0.07 : 0)))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hovering = $0 }
-        .help("Abrir o vídeo no YouTube")
-        .padding(.horizontal, -6)
-    }
-
-    private static func duration(_ seconds: Double) -> String {
-        let total = Int(seconds.rounded())
-        return total < 60 ? "\(total) s" : "\(total / 60) min \(total % 60) s"
-    }
-}
-
-extension VoiceOption {
-    /// "Dora (feminina)" → "Dora": o controle segmentado não comporta o nome inteiro.
-    var shortName: String { name.components(separatedBy: " (").first ?? name }
 }

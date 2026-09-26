@@ -13,6 +13,9 @@ function send(message) {
 async function refresh() {
   try {
     const status = await send({ type: "engine:status" });
+    // Mesma cor de destaque do app (a do macOS), publicada por ele no motor.
+    const accent = status.settings.ui_accent || "";
+    if (/^#[0-9a-f]{6}$/i.test(accent)) document.documentElement.style.setProperty("--accent", accent);
     $("dot").className = "dot on";
     $("engine").textContent = `Motor ativo (v${status.version})`;
     const job = status.jobs.current;

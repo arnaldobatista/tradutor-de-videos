@@ -13,9 +13,9 @@ final class AppModel: ObservableObject {
     @Published private(set) var updatingYtDlp = false
     @Published private(set) var loginEnabled = false
     @Published private(set) var loginNote: String?
-    /// Voz cuja amostra está carregando / tocando: o botão de ouvir mostra isso.
     /// nil = ainda não verificado (ou não é preciso: cookies vêm pela extensão).
     @Published private(set) var fullDiskAccess: Bool?
+    /// Voz cuja amostra está carregando / tocando: o botão de ouvir mostra isso.
     @Published private(set) var sampleLoading: String?
     @Published private(set) var samplePlaying: String?
 
@@ -146,14 +146,15 @@ final class AppModel: ObservableObject {
     /// O usuário escolheu ler os cookies do navegador pelo yt-dlp (o caminho que precisa de permissão).
     var wantsBrowserCookies: Bool { settings?.useCookies == true && !browserName.isEmpty }
 
+    /// Situação dos cookies, mostrada nos Ajustes ao lado da origem escolhida.
     var cookiesCaption: String {
-        guard settings?.useCookies == true else { return "Sem cookies o YouTube costuma negar a legenda traduzida." }
-        guard wantsBrowserCookies else { return "Pela extensão. Não precisa de permissão nenhuma." }
-        if fullDiskAccess == false { return "Falta o Acesso Total ao Disco (veja o aviso acima)." }
+        guard settings?.useCookies == true else { return "Desligados" }
+        guard wantsBrowserCookies else { return "Enviados pela extensão, sem permissão extra" }
+        if fullDiskAccess == false { return "Falta o Acesso Total ao Disco" }
         switch status?.cookies?.browserOk {
-        case .some(true): return "Lidos do \(browserName) pelo yt-dlp."
-        case .some(false): return "O yt-dlp não conseguiu ler o \(browserName) (detalhes em Manutenção › Abrir logs)."
-        case .none: return "Lidos do \(browserName) pelo yt-dlp na próxima dublagem."
+        case .some(true): return "Funcionando"
+        case .some(false): return "Falhou na última dublagem (veja os logs)"
+        case .none: return "Confere na próxima dublagem"
         }
     }
 
@@ -222,6 +223,20 @@ final class AppModel: ObservableObject {
         }
         if unresponsive != supervisor.isUnresponsive { unresponsive = supervisor.isUnresponsive }
         checkFullDiskAccess()
+        syncAccent()
+    }
+
+    /// Publica a cor de destaque do macOS no motor, de onde a extensão lê para pintar o botão do YouTube e o
+    /// popup com a mesma cor do app. Roda a cada /status: trocar a cor nos Ajustes do Sistema chega em até 2 s.
+    private func syncAccent() {
+        guard controlsEnabled, let current = settings, let hex = Self.accentHex() else { return }
+        if current.uiAccent != hex { write(\.uiAccent, key: "ui_accent", value: Optional(hex), silent: true) }
+    }
+
+    static func accentHex() -> String? {
+        guard let color = NSColor.controlAccentColor.usingColorSpace(.sRGB) else { return nil }
+        let channel = { (value: CGFloat) in Int((min(max(value, 0), 1) * 255).rounded()) }
+        return String(format: "#%02X%02X%02X", channel(color.redComponent), channel(color.greenComponent), channel(color.blueComponent))
     }
 
     // MARK: - Ajustes
@@ -234,9 +249,10 @@ final class AppModel: ObservableObject {
     /// "" = cookies enviados pela extensão; "chrome" = lidos do navegador pelo yt-dlp.
     func setCookiesSource(_ browser: String) { write(\.cookiesFromBrowser, key: "cookies_from_browser", value: Optional(browser)) }
     func setVoiceOffset(_ db: Double) { write(\.voiceOffsetDb, key: "voice_offset_db", value: Optional(db)) }
+    func setCacheLimit(_ gb: Double) { write(\.cacheLimitGb, key: "cache_limit_gb", value: Optional(gb)) }
 
     private func write<Value: Encodable & Equatable & Sendable>(
-        _ keyPath: WritableKeyPath<EngineSettings, Value>, key: String, value: Value
+        _ keyPath: WritableKeyPath<EngineSettings, Value>, key: String, value: Value, silent: Bool = false
     ) {
         guard var optimistic = settings, optimistic[keyPath: keyPath] != value else { return }
         optimistic[keyPath: keyPath] = value
@@ -251,7 +267,7 @@ final class AppModel: ObservableObject {
             } catch {
                 logger.error("PUT /settings \(key) falhou: \(error.localizedDescription)")
                 settingsEpoch += 1
-                showFlash("Não foi possível salvar o ajuste")
+                if !silent { showFlash("Não foi possível salvar o ajuste") }
                 await refresh() // volta ao valor que o motor realmente tem
             }
         }
@@ -407,25 +423,27 @@ extension AppModel {
     static func preview(_ scenario: PreviewScenario) -> AppModel {
         let model = AppModel()
         let settings = EngineSettings(voice: "pf_dora", translator: "youtube", ollamaFallback: true, ollamaAssist: true,
-                                      useCookies: true, cacheLimitGb: 10, cookiesFromBrowser: "chrome", voiceOffsetDb: 0)
+                                      useCookies: true, cacheLimitGb: 10, cookiesFromBrowser: "chrome", voiceOffsetDb: 0, uiAccent: nil)
         let voices = ["pf_dora": "Dora (feminina)", "pm_alex": "Alex (masculina)", "pm_santa": "Santa (masculina)"]
         let recent = [
-            Job(id: "a.pt.pf_dora", videoId: "a", stageLabel: nil, progress: 1, title: "Rust in 100 Seconds", status: "done",
-                report: JobReport(tempoTotalS: 43.2, traducao: "faixa traduzida do YouTube")),
+            Job(id: "a.pt.pf_dora", videoId: "a", stageLabel: nil, progress: 1, title: "The History of the Internet in 10 Minutes", status: "done",
+                report: JobReport(tempoTotalS: 214.6, traducao: "faixa traduzida do YouTube")),
             Job(id: "b.pt.pf_dora", videoId: "b", stageLabel: nil, progress: 1,
-                title: "Try something new for 30 days - Matt Cutts", status: "done",
+                title: "Sourdough Bread for Absolute Beginners", status: "done",
                 report: JobReport(tempoTotalS: 101.7, traducao: "Ollama (qwen3)")),
             Job(id: "c.pt.pf_dora", videoId: "c", stageLabel: nil, progress: 0, title: "Vídeo sem legenda", status: "error",
                 error: "Este vídeo não tem legendas (nem automáticas)."),
         ]
         let running = Job(id: "d.pt.pf_dora", videoId: "d", stageLabel: "Gerando a voz em português", progress: 0.23,
-                          title: "How Rust's borrow checker actually works, explained from scratch", status: "running")
+                          title: "How Jet Engines Actually Work, Explained from Scratch", status: "running")
         switch scenario {
         case .dublando:
             model.phase = .running(owned: true)
             model.status = EngineStatus(version: "0.1.0", jobs: .init(current: running, queued: [running], recent: recent),
-                                        cacheBytes: 2_340_000_000, settings: settings, voices: voices)
+                                        cacheBytes: 2_340_000_000, settings: settings, voices: voices,
+                                        cookies: .init(present: true, browser: "chrome", browserOk: true))
             model.settings = settings
+            model.fullDiskAccess = true
         case .ocioso:
             model.phase = .running(owned: true)
             model.status = EngineStatus(version: "0.1.0", jobs: .init(current: nil, queued: [], recent: recent),

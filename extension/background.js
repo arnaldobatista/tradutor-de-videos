@@ -66,6 +66,12 @@ const handlers = {
     const total = range ? Number(range.split("/")[1]) : Number(response.headers.get("Content-Length"));
     return { total, data: toBase64(await response.arrayBuffer()) };
   },
+  // Cor de destaque do macOS, publicada pelo app no motor: o botão e o popup usam a mesma cor do app.
+  async "engine:theme"() {
+    const settings = await (await engine("/settings")).json();
+    const accent = settings.ui_accent || "";
+    return { accent: /^#[0-9a-f]{6}$/i.test(accent) ? accent : null };
+  },
   async "engine:status"() {
     return (await engine("/status")).json();
   },
